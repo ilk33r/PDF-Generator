@@ -57,12 +57,13 @@ class IOPDFGenerator {
 	 * @param Color|null $borderColor
 	 * @return Table
 	 */
-	public function createTable($column, $marginTop, $marginLeftColumn, Color $borderColor = null) {
+	public function createTable($column, $marginTop, $marginLeftColumn, $marginRightColumn, Color $borderColor = null) {
 
 		$pdfWidth = $this->bucket->getWidth();
 		$columnWidth = $pdfWidth / $column;
 		$marginLeft = $columnWidth * $marginLeftColumn;
-		$table = new Table($column, $marginTop, $marginLeft, $columnWidth, $borderColor, $this->bucket->getDpi());
+		$tableWidth = ($column - $marginLeftColumn - $marginRightColumn) *  $columnWidth;
+		$table = new Table($column, $marginTop, $marginLeft, $columnWidth, $tableWidth, $borderColor, $this->bucket->getDpi());
 		$this->bucket->addTable($table);
 
 		return $table;
@@ -86,7 +87,7 @@ class IOPDFGenerator {
 			throw new PDFGeneratorException(PDFGeneratorException::EXCEPTION_TYPE_DIRECTORY_IS_NOT_WRITABLE);
 		}
 
-		$pathComponent = ( (substr($path, strlen($path) - 1, 1) != '/') ? '/' : '') . $fileName;
+		$pathComponent = $path . ( (substr($path, strlen($path) - 1, 1) != '/') ? '/' : '') . $fileName;
 
 		if(file_exists($pathComponent)) {
 			throw new PDFGeneratorException(PDFGeneratorException::EXCEPTION_TYPE_FILE_EXISTS);
@@ -95,7 +96,7 @@ class IOPDFGenerator {
 		$pdfContent = $this->bucket->__toString();
 
 		$pdfHandle = fopen($pathComponent, 'wb');
-		fwrite($pdfContent, $pdfHandle);
+		fwrite($pdfHandle, $pdfContent);
 		fclose($pdfHandle);
 	}
 

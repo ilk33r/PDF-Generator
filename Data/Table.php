@@ -35,6 +35,10 @@ class Table {
 	 */
 	private $marginLeft;
 	/**
+	 * @var int|float
+	 */
+	private $tableWidth;
+	/**
 	 * @var bool
 	 */
 	private $hasBorder;
@@ -84,12 +88,13 @@ class Table {
 	 * @param bool $startInNewPage
 	 * @param int $dpi
 	 */
-	public function __construct($column, $marginTop, $marginLeft, $columnWidth, Color $borderColor = null, $dpi = 300) {
+	public function __construct($column, $marginTop, $marginLeft, $columnWidth, $tableWidth, Color $borderColor = null, $dpi = 300) {
 
 		$this->columnCount = $column;
 		$this->columnWidth = $columnWidth;
 		$this->marginTop = $marginTop;
 		$this->marginLeft = $marginLeft;
+		$this->tableWidth = $tableWidth;
 
 		if(is_null($borderColor)) {
 			$this->hasBorder = false;
@@ -159,10 +164,6 @@ class Table {
 	{
 		$this->pageLeft = $pageLeft - $this->marginTop;
 		$this->pageHeight = $pageHeight;
-		$this->hasNextPage = false;
-		$this->rowLeft = 0;
-		$this->startRow = 0;
-		$this->tableHeight = 0;
 	}
 
 	/**
@@ -182,6 +183,7 @@ class Table {
 
 		$rowCount = count($this->rows);
 		$lastRow = 0;
+		$firstBorderDrawed = false;
 		for($i = $this->startRow; $i < $rowCount; $i++) {
 
 			$currentRow = $this->rows[$i];
@@ -190,7 +192,6 @@ class Table {
 			}
 
 			$this->tableHeight = $currentRow->getRowHeight();
-
 
 			if($this->tableHeight >= $this->pageLeft) {
 
@@ -202,7 +203,18 @@ class Table {
 				}
 			}
 
+			if($this->hasBorder && $firstBorderDrawed) {
+
+				$firstBorderDrawed = true;
+				$sectionWidth = $this->tableWidth + $this->marginLeft;
+				/* top border */
+				$returnString .= $this->borderColor->__toString() . ' ' . $this->marginLeft . ' ' . $this->pageLeft .
+					' m ' . $sectionWidth . ' ' . $this->pageLeft . ' l h S' . "\n";
+			}
+
+			$currentRow->setPageLeft($this->pageLeft);
 			$returnString .= $currentRow->__toString();
+			$this->pageLeft -= $currentRow->getRowHeight();
 			$this->rowLeft -= 1;
 			$lastRow = $i;
 		}
@@ -253,9 +265,14 @@ class TableRow {
 	 */
 	private $columnWidth;
 	/**
+	 * @var int|float
+	 */
+	private $tableWidth;
+	/**
 	 * @var float|int
 	 */
 	private $pageLeft;
+
 
 	/**
 	 * @param int $columnCount
@@ -266,7 +283,7 @@ class TableRow {
 	 * @param int|float $columnWidth
 	 * @param int $dpi
 	 */
-	public function __construct($columnCount, $rowHeight, $hasBorder, $borderColor, $marginLeft, $columnWidth, $dpi = 300) {
+	public function __construct($columnCount, $rowHeight, $hasBorder, $borderColor, $marginLeft, $columnWidth, $tableWidth, $dpi = 300) {
 
 		$this->columnCount = $columnCount;
 		$this->rowHeight = $rowHeight;
@@ -274,6 +291,7 @@ class TableRow {
 		$this->borderColor = $borderColor;
 		$this->marginLeft = $marginLeft;
 		$this->columnWidth = $columnWidth;
+		$this->tableWidth = $tableWidth;
 		$this->columns = array();
 		$this->isDeleted = false;
 		$this->pageLeft = 0;
@@ -324,12 +342,20 @@ class TableRow {
 	}
 
 	/**
+	 * @param float|int $pageLeft
+	 */
+	public function setPageLeft($pageLeft)
+	{
+		$this->pageLeft = $pageLeft;
+	}
+
+	/**
 	 * @return string
 	 */
 	public function __toString() {
 		$rowString = '';
 
-		$borderEnd = $this->pageLeft + $this->rowHeight;
+		$borderEnd = $this->pageLeft - $this->rowHeight;
 		$sectionWidth = $this->marginLeft + ($this->columnWidth * $this->columnCount);
 
 		if($this->hasBorder) {
@@ -460,7 +486,7 @@ class TableColumn {
 						' ' . $this->columnHeight . ' re f' . "\n";
 
 		$borderEndX = $this->columnStartX + $this->columnWidth;
-		$borderEndY = $this->pageLeft + $this->columnHeight;
+		$borderEndY = $this->pageLeft - $this->columnHeight;
 
 		if($this->hasBorder) {
 

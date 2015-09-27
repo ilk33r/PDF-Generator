@@ -365,7 +365,7 @@ class Bucket {
 		$returnString .= "%PDF-1.4\n";
 		/* Unicode */
 		$returnString .= "%���������" . "\n";
-		$objectSizes[] = mb_strlen($returnString);
+		$objectSizes[] = strlen($returnString);
 
 		$catalogObject = "1 0 obj <</Type /Catalog /Pages 8 0 R /Version /1.4>>\nendobj\n";
 		$returnString .= $catalogObject;
@@ -418,19 +418,25 @@ class Bucket {
 
 			$objectId = $j + $pageDefinitionStartObjectId;
 			$currentContentStartObjectId = ($j * 2) + $contentStartObjectId;
-			$pageObject = "{$objectId} 0 obj <</Type /Pages /Parent 8 0 R /Resources 6 0 R /MediaBox [0 0 {$this->width} {$this->height}] /Contents {$currentContentStartObjectId} 0 R>>\nendobj\n";
+			$pageObject = "{$objectId} 0 obj <</Type /Page /Parent 8 0 R /Resources 6 0 R /MediaBox [0 0 {$this->width} {$this->height}] /Contents {$currentContentStartObjectId} 0 R>>\nendobj\n";
 			$returnString .= $pageObject;
 			$objectSizes[] = strlen($pageObject);
 		}
 
 		for($k = 0; $k < $pageCount; $k++) {
 
-			$compressedString = gzcompress($pages[$k]);
+			//$compressedString = gzcompress($pages[$k]);
+			//$compressedStringLength = strlen($compressedString) + 1;
+
+			$compressedString = $pages[$k];
 			$compressedStringLength = strlen($compressedString) + 1;
+
 			$currentContentStartObjectId = ($k * 2) + $contentStartObjectId;
 			$lengthIdx = $currentContentStartObjectId + 1;
 
-			$pageContent = "{$currentContentStartObjectId} 0 obj <</Length {$lengthIdx} 0 R /Filter /FlateDecode>>\nstream\n{$compressedString}\nendstream\nendobj\n";
+			//$pageContent = "{$currentContentStartObjectId} 0 obj <</Length {$lengthIdx} 0 R /Filter /FlateDecode>>\nstream\n{$compressedString}\nendstream\nendobj\n";
+			$pageContent = "{$currentContentStartObjectId} 0 obj <</Length {$lengthIdx} 0 R>>\nstream\n{$compressedString}\nendstream\nendobj\n";
+
 			$returnString .= $pageContent;
 			$objectSizes[] = strlen($pageContent);
 
@@ -441,14 +447,16 @@ class Bucket {
 
 
 		$objectCount = count($objectSizes);
-		$pdfObjectCount = $objectCount - 2;
+		$pdfObjectCount = $objectCount - 1;
 		$xrefObjectCount = $objectCount - 1;
 		$xrefObjectDef = "xref\n0 {$pdfObjectCount}\n0000000000 65535 f\n";
 		$returnString .= $xrefObjectDef;
+		$currentStartIdx = 0;
 
 		for($y = 0; $y < $xrefObjectCount; $y++) {
 
-			$currentOffset = $objectSizes[$y];
+			$currentStartIdx += $objectSizes[$y];
+			$currentOffset = $currentStartIdx;
 			$startOffsetString = (string)$currentOffset;
 			$startOffsetStringLen = strlen($startOffsetString);
 			$endCharacterCount = 10 - $startOffsetStringLen;
@@ -462,7 +470,7 @@ class Bucket {
 			$returnString .= "{$offsetRealString} 00000 n\n";
 		}
 
-		$startXref = $objectSizes[$xrefObjectCount];
+		$startXref = $currentStartIdx + $objectSizes[$xrefObjectCount];
 		$returnString .= "trailer <</Size {$pdfObjectCount}/Root 1 0 R>>\nstartxref\n{$startXref}\n%%EOF";
 
 		return $returnString;
@@ -488,10 +496,10 @@ class Bucket {
 						$pageLeft = $this->height;
 					}
 
-					$tableObject->setPageLeftAndHeight($pageLeft, $this->height);
 
 					do{
 
+						$tableObject->setPageLeftAndHeight($pageLeft, $this->height);
 						$pageContent .= $tableObject->__toString();
 						$hasNextPage = $tableObject->isHasNextPage();
 
@@ -501,6 +509,9 @@ class Bucket {
 						}
 
 					}while($hasNextPage);
+
+					$pages[] = $pageContent;
+					$pageLeft = $this->height;
 
 					break;
 			}
