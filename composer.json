@@ -1,0 +1,21 @@
+{
+  "name": "ilk33r/PDF-Generator",
+  "description": "Another PDF generator package.",
+  "keywords": ["pdf generator"],
+  "license": "MIT",
+  "homepage": "https://github.com/ilk33r/PDF-Generator",
+  "authors": [
+    {
+      "name": "Ilker Özcan",
+      "email": "iletisim@ilkerozcan.com.tr"
+    }
+  ],
+  "require": {
+    "php": ">=5.6.0",
+    "ext-gd" : "*",
+    "ext-zlib" : "*"
+  },
+  "autoload": {
+    "psr-4": { "IO\\PDFGenerator\\": "" }
+  }
+}
